@@ -41,11 +41,55 @@ scip-go
 rm index.scip
 ```
 
-## Usage
+## Testing Precise Navigation in Sourcegraph
 
-Open this project in Sourcegraph and test cross-package navigation:
+Open this project in Sourcegraph and try the following exercises:
 
-1. In `cmd/app/main.go`, click on `greeter.PrefixGreeter` → should jump to `internal/greeter/greeter.go`
-2. Click on `mathutil.Sum` → should jump to `pkg/mathutil/mathutil.go`
-3. Right-click `Greeter` interface → Find Implementations should show both `PrefixGreeter` and `CountingGreeter`
-4. In `mathutil.go`, find references to `Sum` → should show usage in both `Average` and `main.go`
+### 1. Go to Definition (cross-package type)
+
+Jump from a type usage to its definition in another package.
+
+- In `cmd/app/main.go`, click on `PrefixGreeter` (line 33)
+- → Should highlight definition in `internal/greeter/greeter.go` line 11
+
+### 2. Go to Definition (cross-package method)
+
+Navigate from a method call to its implementation in another package.
+
+- In `cmd/app/main.go`, click on `Greet` (line 34)
+- → Should highlight definition in `internal/greeter/greeter.go` line 16
+
+### 3. Go to Definition (cross-package function)
+
+Jump to a standalone function defined in a different package.
+
+- In `cmd/app/main.go`, click on `Sum` (line 44)
+- → Should highlight definition in `pkg/mathutil/mathutil.go` line 4
+
+### 4. Find Implementations (interface)
+
+Discover all types implementing an interface across the codebase.
+
+- In `internal/greeter/greeter.go`, right-click on `Greeter` interface (line 6)
+- → Should show `PrefixGreeter` (line 11) and `CountingGreeter` (line 21)
+
+### 5. Find Implementations (interface method)
+
+See all concrete implementations of an interface method.
+
+- In `internal/greeter/greeter.go`, right-click on `Greet` method signature (line 7)
+- → Should show implementations on lines 16 and 27
+
+### 6. Find References (cross-package)
+
+Find all usages of a symbol from another package.
+
+- In `pkg/mathutil/mathutil.go`, right-click on `Sum` function (line 4)
+- → Should show references in `main.go` line 44 AND `mathutil.go` line 15 (used by `Average`)
+
+### 7. Go to Definition (pointer vs value receiver)
+
+Navigate to methods with different receiver types.
+
+- In `cmd/app/main.go`, click on `Count` (line 40)
+- → Should highlight pointer receiver method in `internal/greeter/greeter.go` line 33
