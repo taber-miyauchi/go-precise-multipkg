@@ -1,0 +1,294 @@
+# =============================================================================
+# SCIP Index GitHub Actions Workflow
+# =============================================================================
+#
+# This workflow automates the generation and upload of SCIP (Source Code
+# Intelligence Protocol) index data to Sourcegraph. SCIP enables "Precise
+# Code Navigation" - features like accurate go-to-definition and find-references
+# that work across repositories.
+#
+# What this workflow does:
+# 1. Triggers on pushes to the main branch
+# 2. Sets up Go environment (1.24+ required by scip-go)
+# 3. Installs scip-go (the Go SCIP indexer)
+# 4. Installs src-cli (Sourcegraph command-line interface)
+# 5. Generates an index.scip file containing symbol information
+# 6. Uploads the index to your Sourcegraph instance
+#
+# Prerequisites:
+# - Repository must be visible to your Sourcegraph instance
+# - GitHub secrets must be configured (see secrets section below)
+#
+# Reference: https://sourcegraph.com/docs/code-navigation/how-to/index-a-go-repository
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Workflow name - appears in GitHub Actions UI
+# -----------------------------------------------------------------------------
+name: SCIP Index
+
+# -----------------------------------------------------------------------------
+# Trigger Configuration
+# -----------------------------------------------------------------------------
+# "on" defines when this workflow runs.
+#
+# Current setup: Runs on every push to the "main" branch.
+#
+# Other common triggers you might consider:
+#   - pull_request: Index on PRs (useful for testing but generates more uploads)
+#   - schedule: Run on a cron schedule (e.g., nightly indexing for large repos)
+#   - workflow_dispatch: Allow manual triggering from GitHub UI
+#
+# Example with multiple triggers:
+#   on:
+#     push:
+#       branches: [main]
+#     workflow_dispatch:  # Allows manual trigger
+# -----------------------------------------------------------------------------
+on:
+  push:
+    branches:
+      - main  # Change to 'master' if that's your default branch
+
+# -----------------------------------------------------------------------------
+# Jobs
+# -----------------------------------------------------------------------------
+# A workflow can have multiple jobs that run in parallel or sequentially.
+# We only need one job: index-and-upload
+# -----------------------------------------------------------------------------
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job: index-and-upload
+  # ---------------------------------------------------------------------------
+  # This job handles the entire indexing pipeline:
+  # checkout → setup tools → generate index → upload to Sourcegraph
+  # ---------------------------------------------------------------------------
+  index-and-upload:
+    # -------------------------------------------------------------------------
+    # Runner Configuration
+    # -------------------------------------------------------------------------
+    # "runs-on" specifies the type of machine to run the job.
+    #
+    # ubuntu-latest: GitHub-hosted Linux runner (recommended)
+    #   - Provides consistent behavior (avoids macOS issues noted in #45)
+    #   - Has all necessary build tools pre-installed
+    #   - Free for public repos, metered for private repos
+    #
+    # Alternatives:
+    #   - ubuntu-22.04: Pin to specific Ubuntu version for reproducibility
+    #   - self-hosted: Use your own runners for private networks
+    # -------------------------------------------------------------------------
+    runs-on: ubuntu-latest
+
+    # -------------------------------------------------------------------------
+    # Steps
+    # -------------------------------------------------------------------------
+    # Steps run sequentially within the job. Each step either:
+    #   - Uses a pre-built action (uses: keyword)
+    #   - Runs shell commands (run: keyword)
+    # -------------------------------------------------------------------------
+    steps:
+      # -----------------------------------------------------------------------
+      # Step 1: Checkout Repository
+      # -----------------------------------------------------------------------
+      # actions/checkout@v4 clones your repository into the runner.
+      #
+      # Key behaviors:
+      #   - Clones only the commit that triggered the workflow (shallow clone)
+      #   - Sets up git credentials for subsequent git operations
+      #   - Working directory becomes the repo root
+      #
+      # The checkout is essential because runners start with empty workspaces.
+      # -----------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Step 2: Set Up Go
+      # -----------------------------------------------------------------------
+      # actions/setup-go@v5 installs and configures Go on the runner.
+      #
+      # NOTE: scip-go v0.1.26+ requires Go 1.24 or later.
+      #
+      # What this action does:
+      #   - Installs the specified Go version
+      #   - Adds Go to PATH
+      #   - Sets up GOPATH and GOMODCACHE
+      #   - Caches downloaded modules for faster subsequent runs
+      #
+      # The 'go-version' format:
+      #   - '1.24': Latest 1.24.x patch version (recommended for stability)
+      #   - '1.24.0': Exact version (use if you need precise reproducibility)
+      #   - '^1.24': Caret syntax, equivalent to '1.24'
+      # -----------------------------------------------------------------------
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'  # scip-go v0.1.26+ requires Go 1.24+
+          cache: false        # Disable cache - no external dependencies (no go.sum)
+
+      # -----------------------------------------------------------------------
+      # Step 3: Install scip-go
+      # -----------------------------------------------------------------------
+      # scip-go is the Go SCIP indexer that analyzes your code and produces
+      # an index.scip file containing:
+      #   - All symbol definitions (functions, types, variables, constants)
+      #   - All symbol references (where symbols are used)
+      #   - Documentation strings and type information
+      #
+      # "go install" downloads, compiles, and installs the tool to GOBIN.
+      # The @latest tag fetches the most recent release.
+      #
+      # Alternative: Use a specific version for reproducibility:
+      #   go install github.com/sourcegraph/scip-go@v0.3.0
+      #
+      # Note: The sourcegraph/scip-go Docker image bundles both scip-go and
+      # src-cli, which can simplify your workflow if preferred.
+      # -----------------------------------------------------------------------
+      - name: Install scip-go indexer
+        run: go install github.com/sourcegraph/scip-go/cmd/scip-go@latest
+
+      # -----------------------------------------------------------------------
+      # Step 4: Install Sourcegraph CLI (src-cli)
+      # -----------------------------------------------------------------------
+      # src-cli is the Sourcegraph command-line interface used to:
+      #   - Upload SCIP indexes to Sourcegraph
+      #   - Query Sourcegraph's API
+      #   - Manage batch changes and other Sourcegraph features
+      #
+      # Installation steps:
+      #   1. Download the Linux AMD64 binary from Sourcegraph's API endpoint
+      #   2. Save it to /usr/local/bin/src (standard location for user binaries)
+      #   3. Make it executable with chmod +x
+      #
+      # Platform variations:
+      #   - macOS Intel:  src_darwin_amd64
+      #   - macOS M1/M2:  src_darwin_arm64
+      #   - Linux AMD64:  src_linux_amd64 (used here)
+      #   - Linux ARM64:  src_linux_arm64
+      # -----------------------------------------------------------------------
+      - name: Install Sourcegraph CLI
+        run: |
+          curl -L https://sourcegraph.com/.api/src-cli/src_linux_amd64 -o /usr/local/bin/src
+          chmod +x /usr/local/bin/src
+
+      # -----------------------------------------------------------------------
+      # Step 5: Generate SCIP Index
+      # -----------------------------------------------------------------------
+      # Running scip-go in your project root generates an index.scip file.
+      #
+      # How scip-go works:
+      #   1. Parses your Go module (using go.mod)
+      #   2. Analyzes all Go source files using the Go compiler's type checker
+      #   3. Extracts symbol definitions, references, and relationships
+      #   4. Outputs everything to index.scip in SCIP protocol format
+      #
+      # Common scip-go options:
+      #   --verbose           Show detailed progress
+      #   --output <file>     Change output file name (default: index.scip)
+      #   --module-root <dir> Specify module root if not current directory
+      #
+      # Known limitations:
+      #   - Test files may not be indexed by default (#98)
+      #   - Anonymous structs may have incorrect symbol names (#95)
+      #   - Memory issues possible for very large monorepos (#33)
+      #
+      # For monorepos, consider indexing subdirectories separately:
+      #   cd services/api && scip-go
+      # -----------------------------------------------------------------------
+      - name: Generate SCIP index
+        run: scip-go
+
+      # -----------------------------------------------------------------------
+      # Step 6: Upload SCIP Index to Sourcegraph
+      # -----------------------------------------------------------------------
+      # This step uploads the generated index.scip to your Sourcegraph instance.
+      #
+      # Required environment variables (configured via GitHub secrets):
+      #   - SRC_ENDPOINT: Your Sourcegraph instance URL
+      #       Example: https://sourcegraph.example.com
+      #       For Sourcegraph.com: https://sourcegraph.com
+      #
+      #   - SRC_ACCESS_TOKEN: Personal access token with write permissions
+      #       Generate at: <your-sourcegraph-url>/user/settings/tokens
+      #       Required scope: user:all (or appropriate write permissions)
+      #
+      # Command breakdown:
+      #   src code-intel upload    Upload code intelligence data
+      #     -repo=...              Repository name with host prefix (e.g., github.com/owner/repo)
+      #     -commit=...            Git commit SHA being indexed
+      #     -file=index.scip       Path to the generated SCIP file
+      #
+      # GitHub context variables used:
+      #   - github.repository: "owner/repo" format (e.g., "myorg/myproject")
+      #   - github.sha: Full 40-character commit SHA that triggered the workflow
+      #
+      # Additional useful flags:
+      #   -root=<path>     Specify subdirectory if indexing a monorepo subproject
+      #   -upload-route=   Override the upload endpoint (rarely needed)
+      #   -no-progress     Disable progress bar (useful for cleaner CI logs)
+      #
+      # Troubleshooting:
+      #   - "authentication failed": Check SRC_ACCESS_TOKEN is valid
+      #   - "repository not found": Ensure repo is synced in Sourcegraph
+      #   - "upload failed": Check Sourcegraph instance is reachable
+      # -----------------------------------------------------------------------
+      - name: Upload SCIP index to Sourcegraph
+        env:
+          # -------------------------------------------------------------------
+          # GitHub Secrets Configuration
+          # -------------------------------------------------------------------
+          # These secrets must be added to your repository settings:
+          #   Settings → Secrets and variables → Actions → New repository secret
+          #
+          # SRC_ENDPOINT:
+          #   - For Sourcegraph.com: https://sourcegraph.com
+          #   - For self-hosted: https://sourcegraph.yourcompany.com
+          #
+          # SRC_ACCESS_TOKEN:
+          #   1. Go to your Sourcegraph instance
+          #   2. Navigate to User menu → Settings → Access tokens
+          #   3. Create a new token with appropriate permissions
+          #   4. Copy and save as GitHub secret (you won't see it again!)
+          # -------------------------------------------------------------------
+          SRC_ENDPOINT: ${{ secrets.SRC_ENDPOINT }}
+          SRC_ACCESS_TOKEN: ${{ secrets.SRC_ACCESS_TOKEN }}
+        run: |
+          src code-intel upload \
+            -repo=github.com/${{ github.repository }} \
+            -commit=${{ github.sha }} \
+            -file=index.scip
+
+# =============================================================================
+# Troubleshooting Guide
+# =============================================================================
+#
+# Issue: Workflow fails with "scip-go: command not found"
+# Fix: Ensure 'go install' step completed successfully. Check Go version.
+#
+# Issue: Upload fails with "authentication required"
+# Fix: Verify SRC_ACCESS_TOKEN is set correctly in GitHub secrets.
+#
+# Issue: Upload fails with "repository not found"
+# Fix: Ensure the repository is added/synced in your Sourcegraph instance.
+#
+# Issue: scip-go panics or crashes
+# Fix: Check Go version - must be 1.24+ for scip-go v0.1.26+.
+#
+# Issue: Index seems incomplete (missing symbols)
+# Fix: Ensure all dependencies are available. Try running locally first.
+#
+# Issue: Cross-repo navigation not working
+# Fix: Both repositories must have SCIP indexes uploaded.
+#
+# =============================================================================
+# Next Steps After Setup
+# =============================================================================
+#
+# 1. Add GitHub secrets (SRC_ENDPOINT and SRC_ACCESS_TOKEN)
+# 2. Push a commit to main branch to trigger the workflow
+# 3. Check Actions tab for workflow status
+# 4. Visit Sourcegraph and verify precise navigation works
+# 5. Test "Go to definition" and "Find references" on your code
+#
+# =============================================================================
