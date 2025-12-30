@@ -49,21 +49,21 @@ Open this project in Sourcegraph and try the following exercises:
 
 Jump from a type usage to its definition in another package.
 
-- In `cmd/app/main.go`, click on `PrefixGreeter` (line 33)
+- In `cmd/app/main.go`, click on `PrefixGreeter` (line 12)
 - → Should highlight definition in `internal/greeter/greeter.go` line 11
 
 ### 2. Go to Definition (cross-package method)
 
 Navigate from a method call to its implementation in another package.
 
-- In `cmd/app/main.go`, click on `Greet` (line 34)
+- In `cmd/app/main.go`, click on `Greet` (line 13)
 - → Should highlight definition in `internal/greeter/greeter.go` line 16
 
 ### 3. Go to Definition (cross-package function)
 
 Jump to a standalone function defined in a different package.
 
-- In `cmd/app/main.go`, click on `Sum` (line 44)
+- In `cmd/app/main.go`, click on `Sum` (line 23)
 - → Should highlight definition in `pkg/mathutil/mathutil.go` line 4
 
 ### 4. Find Implementations (interface)
@@ -85,11 +85,11 @@ See all concrete implementations of an interface method.
 Find all usages of a symbol from another package.
 
 - In `pkg/mathutil/mathutil.go`, right-click on `Sum` function (line 4)
-- → Should show references in `main.go` line 44 AND `mathutil.go` line 15 (used by `Average`)
+- → Should show references in `main.go` line 23 AND `mathutil.go` line 18 (used by `Average`)
 
 ### 7. Go to Definition (pointer vs value receiver)
 
 Navigate to methods with different receiver types.
 
-- In `cmd/app/main.go`, click on `Count` (line 40)
+- In `cmd/app/main.go`, click on `Count` (line 19)
 - → Should highlight pointer receiver method in `internal/greeter/greeter.go` line 33
