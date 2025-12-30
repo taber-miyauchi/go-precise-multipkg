@@ -77,19 +77,19 @@ Discover all types implementing an interface across the codebase.
 
 See all concrete implementations of an interface method.
 
-- In `internal/greeter/greeter.go`, Cick on `Greet` method signature (line 7) → click "Find Implementations"
-- → Highlights 'Greet' in line 16 and 21
+- In `internal/greeter/greeter.go`, Click on `Greet` method signature (line 7) → click "Find Implementations"
+- → Highlights `Greet` in line 16 and 21
 
 ### 6. Find References (cross-package)
 
 Find all usages of a symbol from another package.
 
-- In `pkg/mathutil/mathutil.go`, right-click on `Sum` function (line 4)
-- → Should show references in `main.go` line 23 AND `mathutil.go` line 18 (used by `Average`)
+- In `pkg/mathutil/mathutil.go`, Click on `Sum` function (line 4) → click "Find References"
+- → Highlights references in `main.go` line 23 AND `mathutil.go` line 18 (used by `Average`)
 
 ### 7. Go to Definition (pointer vs value receiver)
 
 Navigate to methods with different receiver types.
 
-- In `cmd/app/main.go`, click on `Count` (line 19)
-- → Should highlight pointer receiver method in `internal/greeter/greeter.go` line 33
+- In `cmd/app/main.go`, click on `Count` (line 19) → click "Go to Definition"
+- → Highlights pointer receiver method in `internal/greeter/greeter.go` line 33
