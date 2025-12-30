@@ -49,36 +49,36 @@ Open this project in Sourcegraph and try the following exercises:
 
 Jump from a type usage to its definition in another package.
 
-- In `cmd/app/main.go`, click on `PrefixGreeter` (line 12)
-- → Should highlight definition in `internal/greeter/greeter.go` line 11
+- In `cmd/app/main.go`, click on `PrefixGreeter` (line 12) → click "Go to Definition"
+- → Highlights definition in `internal/greeter/greeter.go` line 11
 
 ### 2. Go to Definition (cross-package method)
 
 Navigate from a method call to its implementation in another package.
 
-- In `cmd/app/main.go`, click on `Greet` (line 13)
-- → Should highlight definition in `internal/greeter/greeter.go` line 16
+- In `cmd/app/main.go`, click on `Greet` (line 13) → click "Go to Definition"
+- → Highlights definition in `internal/greeter/greeter.go` line 16
 
 ### 3. Go to Definition (cross-package function)
 
 Jump to a standalone function defined in a different package.
 
-- In `cmd/app/main.go`, click on `Sum` (line 23)
-- → Should highlight definition in `pkg/mathutil/mathutil.go` line 4
+- In `cmd/app/main.go`, click on `Sum` (line 23) → click "Go to Definition"
+- → Highlight definition in `pkg/mathutil/mathutil.go` line 4
 
 ### 4. Find Implementations (interface)
 
 Discover all types implementing an interface across the codebase.
 
-- In `internal/greeter/greeter.go`, right-click on `Greeter` interface (line 6)
-- → Should show `PrefixGreeter` (line 11) and `CountingGreeter` (line 21)
+- In `internal/greeter/greeter.go`, click on `Greeter` interface (line 6) → click "Find Implementations"
+- → Highlights `PrefixGreeter` (line 11) and `CountingGreeter` (line 21)
 
 ### 5. Find Implementations (interface method)
 
 See all concrete implementations of an interface method.
 
-- In `internal/greeter/greeter.go`, right-click on `Greet` method signature (line 7)
-- → Should show implementations on lines 16 and 27
+- In `internal/greeter/greeter.go`, Cick on `Greet` method signature (line 7) → click "Find Implementations"
+- → Highlights 'Greet' in line 16 and 21
 
 ### 6. Find References (cross-package)
 
